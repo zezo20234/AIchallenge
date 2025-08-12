@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Daily Challenge</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
+    #challengeBox { 
+      border: 2px solid #333; 
+      padding: 20px; 
+      display: inline-block; 
+      border-radius: 10px; 
+      background: #f8f8f8; 
+      max-width: 400px;
+    }
+    button { 
+      background: #4CAF50; 
+      color: white; 
+      padding: 10px 20px; 
+      font-size: 16px; 
+      border: none; 
+      border-radius: 5px; 
+      cursor: pointer; 
+    }
+    button:disabled { background: gray; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+
+<h1>Daily Lazuzu Challenge</h1>
+<div id="challengeBox" style="display:none;">
+  <h2 id="challengeTitle"></h2>
+  <p id="challengeDesc"></p>
+  <button id="doneBtn">I Did It!</button>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, get, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+// Firebase config
+const firebaseConfig = {
+    apiKey: "AIzaSyAjeXycCBhYoAU-0iiC4LbSTylKrrThN8Y",
+    authDomain: "sharplabubu.firebaseapp.com",
+    databaseURL: "https://sharplabubu-default-rtdb.firebaseio.com",
+    projectId: "sharplabubu",
+    storageBucket: "sharplabubu.firebasestorage.app",
+    messagingSenderId: "596148393481",
+    appId: "1:596148393481:web:4f822d86c44a13bd810ad8",
+    measurementId: "G-4M25R3BF08"
+};
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+// 20 fun challenges for 8–10 year olds
+const challenges = [
+  { title: "Do 10 Jumping Jacks", desc: "Get active by doing 10 jumping jacks in a row." },
+  { title: "Tell a Joke", desc: "Tell a funny joke to a family member." },
+  { title: "Learn a New Word", desc: "Learn and explain a new word." },
+  { title: "Do a Puzzle", desc: "Complete any puzzle you have at home." },
+  { title: "Sing a Song", desc: "Perform a short song you know." },
+  { title: "Count Your Toys", desc: "Count all your toys and sort them." },
+  { title: "Dance for 2 Minutes", desc: "Dance to your favorite song." },
+  { title: "Jump on One Foot", desc: "See how long you can hop on one foot." },
+  { title: "Spin Around 5 Times", desc: "Spin in place five times without falling." },
+  { title: "Clap 20 Times", desc: "Clap your hands 20 times as fast as you can." },
+  { title: "Balance a Book on Your Head", desc: "Walk 5 steps while balancing a book." },
+  { title: "Touch Your Toes", desc: "Touch your toes and count to 10." },
+  { title: "Run in Place for 30 Seconds", desc: "Pretend you’re running a race at home." },
+  { title: "Make a Funny Face", desc: "Make the silliest face you can for 5 seconds." },
+  { title: "Pretend to Be an Animal", desc: "Walk around like your favorite animal." },
+  { title: "High Five Everyone in the Room", desc: "Give a high five to each person nearby." },
+  { title: "Count to 50 Backwards", desc: "Count backwards from 50 without stopping." },
+  { title: "March in Place", desc: "March like a soldier for 1 minute." },
+  { title: "Freeze Dance", desc: "Dance until someone says 'freeze' and hold still." },
+  { title: "Pretend to Swim", desc: "Do swimming motions for 30 seconds." }
+];
+
+// Allowed reward values
+const rewardOptions = [1000, 2000, 3000, 4000, 5000];
+
+// Pick today’s challenge
+function getTodayChallengeIndex() {
+    const today = new Date();
+    const dayNum = today.getDate();
+    return (dayNum % challenges.length);
+}
+
+// Show challenge only between 3 PM and 4 PM
+function showChallenge() {
+    const now = new Date();
+    const hour = now.getHours();
+    if (hour === 15) {
+        const challenge = challenges[getTodayChallengeIndex()];
+        document.getElementById("challengeTitle").textContent = challenge.title;
+        document.getElementById("challengeDesc").textContent = challenge.desc;
+        document.getElementById("challengeBox").style.display = "block";
+        document.getElementById("doneBtn").disabled = false;
+    } else {
+        document.getElementById("challengeBox").style.display = "none";
+    }
+}
+setInterval(showChallenge, 60000); // Check every minute
+showChallenge();
+
+// Handle claim
+document.getElementById("doneBtn").onclick = async () => {
+    const username = prompt("Enter your username:");
+    if (!username) return;
+
+    const todayDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const userRef = ref(db, `users/${username}`);
+    const snapshot = await get(userRef);
+
+    let currentCredits = 0;
+    let lastChallengeDate = null;
+
+    if (snapshot.exists()) {
+        currentCredits = snapshot.val().credits || 0;
+        lastChallengeDate = snapshot.val().lastChallengeDate || null;
+    }
+
+    if (lastChallengeDate === todayDate) {
+        alert("❌ You have already completed today's challenge!");
+        document.getElementById("doneBtn").disabled = true;
+        return;
+    }
+
+    // Pick a reward from the fixed set
+    const reward = rewardOptions[Math.floor(Math.random() * rewardOptions.length)];
+
+    await update(userRef, { 
+        credits: currentCredits + reward,
+        lastChallengeDate: todayDate
+    });
+
+    alert(`🎉 You earned ${reward} Lazuzu!`);
+    document.getElementById("doneBtn").disabled = true;
+};
+</script>
+
+</body>
+</html>
